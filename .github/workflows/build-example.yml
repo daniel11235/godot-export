@@ -14,6 +14,7 @@ jobs:
         id: wine_install
         run: |
           sudo apt install wine64
+          npm install -g rcedit
           echo "WINE_PATH=$(which wine64)" >> $GITHUB_OUTPUT
       - name: export game
         id: export
@@ -25,6 +26,9 @@ jobs:
           relative_export_path: ./my/build/destination # move export output to this directory relative to git root
           archive_output: true
           wine_path: ${{ steps.wine_install.outputs.WINE_PATH }}
+      - name: Set EXE icon
+        run: |
+          rcedit ./my/build/destination/something.exe --set-icon ./examples/project-godot-4/icon.ico
       - name: create release
         uses: ncipollo/release-action@v1.14.0
         with:
