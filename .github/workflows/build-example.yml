@@ -26,9 +26,9 @@ jobs:
           relative_project_path: ./examples/project-godot-4 # build the standard project
           relative_export_path: ./my/build/destination # move export output to this directory relative to git root
           wine_path: ${{ steps.wine_install.outputs.WINE_PATH }}
-      - name: Set EXE icon
-        run: |
-          ${{ steps.wine_install.outputs.RCEDIT_PATH }} /home/runner/work/godot-export/godot-export/my/build/destination/something.exe --set-icon ./examples/project-godot-4/icon.ico
+      #- name: Set EXE icon
+      #  run: |
+      #    ${{ steps.wine_install.outputs.RCEDIT_PATH }} /home/runner/work/godot-export/godot-export/my/build/destination/something.exe --set-icon ./examples/project-godot-4/icon.ico
       - name: create release
         uses: ncipollo/release-action@v1.14.0
         with:
