@@ -1,38 +1,114 @@
+name: "godot-ci export"
 on:
   push:
-    tags:
-      - "v*-test"
+    # Pattern matched against refs/tags
+    tags:        
+      - '*'
+
+env:
+  GODOT_VERSION: 4.4.1
+  EXPORT_NAME: godot-ci-test # CHANGE ME
 
 jobs:
-  export_game:
+  export-windows:
+    name: Windows Export
     runs-on: ubuntu-latest
-    name: Export Game Job
+    container:
+      image: barichello/godot-ci:4.4.1
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
-      - name: install wine
-        id: wine_install
-        run: |
-          sudo apt install wine64
-          npm install -g rcedit
-          echo "WINE_PATH=$(which wine64)" >> $GITHUB_OUTPUT
-          echo "RCEDIT_PATH=$(which rcedit)" >> $GITHUB_OUTPUT
-      - name: export game
-        id: export
-        uses: firebelley/godot-export@v6.0.0
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
         with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
-          relative_project_path: ./examples/project-godot-4 # build the standard project
-          relative_export_path: ./my/build/destination # move export output to this directory relative to git root
-          wine_path: ${{ steps.wine_install.outputs.WINE_PATH }}
-      - name: Set EXE icon
+          lfs: true
+      - name: Setup
         run: |
-          ${{ steps.wine_install.outputs.RCEDIT_PATH }} /home/runner/.local/share/godot/builds/win/something.exe --set-icon ./examples/project-godot-4/icon.ico
-      - name: create release
-        uses: ncipollo/release-action@v1.14.0
+          mkdir -v -p ~/.local/share/godot/templates
+          mv /root/.local/share/godot/templates/${GODOT_VERSION}.stable ~/.local/share/godot/templates/${GODOT_VERSION}.stable
+      - name: Windows Build
+        run: |
+          cd ./cozycritters
+          mkdir -v -p build/windows
+          godot -v --export "Windows Desktop" build/windows/$EXPORT_NAME.exe
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.6.2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          generateReleaseNotes: true
-          tag: ${{ github.ref_name }}
-          artifacts: /home/runner/.local/share/godot/builds/*/* # Added "/*" at the end is glob pattern match for this action
+          name: windows
+          path: build/windows
+          
+  export-linux:
+    name: Linux Export
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
+        with:
+          lfs: true
+      - name: Setup
+        run: |
+          mkdir -v -p ~/.local/share/godot/templates
+          mv /root/.local/share/godot/templates/${GODOT_VERSION}.stable ~/.local/share/godot/templates/${GODOT_VERSION}.stable
+      - name: Linux Build
+        run: |
+          cd ./cozycritters
+          mkdir -v -p build/linux
+          godot -v --export "Linux/X11" build/linux/$EXPORT_NAME.x86_64
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: linux
+          path: build/linux
+
+  export-mac:
+    name: Mac Export
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
+        with:
+          lfs: true
+      - name: Setup
+        run: |
+          mkdir -v -p ~/.local/share/godot/templates
+          mv /root/.local/share/godot/templates/${GODOT_VERSION}.stable ~/.local/share/godot/templates/${GODOT_VERSION}.stable
+      - name: Mac Build
+        run: |
+          cd ./cozycritters
+          mkdir -v -p build/mac
+          godot -v --export "Mac OSX" build/mac/$EXPORT_NAME.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: mac
+          path: build/mac
+
+#  deployToSteam:
+#    name: Deploy to Steam 
+#    needs: [export-mac, export-windows, export-linux]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Set env
+#        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+#      - name: Test
+#        run: |
+#          echo $RELEASE_VERSION
+#          echo ${{ env.RELEASE_VERSION }}
+#      - name: Download Artifact
+#        uses:  actions/download-artifact@v3.0.0
+#      - name: Deploy to Steam
+#        uses: game-ci/steam-deploy@v3.1.0
+#        with:
+#          username: ${{ secrets.STEAM_USERNAME }}
+#          password: ${{ secrets.STEAM_PASSWORD }}
+#          configVdf: ${{ secrets.STEAM_CONFIG_VDF}}
+#          ssfnFileName: ${{ secrets.STEAM_SSFN_FILE_NAME }}
+#          ssfnFileContents: ${{ secrets.STEAM_SSFN_FILE_CONTENTS }}
+#          appId: 1370410 # CHANGE ME
+#          buildDescription: ${{ env.RELEASE_VERSION }}
+#          releaseBranch: ci-test # CHANGE ME
+#          depot1Path: windows
+#          depot2Path: linux
+#          depot4Path: mac
