@@ -35,4 +35,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
           tag: ${{ github.ref_name }}
-          artifacts: /home/runner/.local/share/godot/builds/* # Added "/*" at the end is glob pattern match for this action
+          artifacts: /home/runner/.local/share/godot/builds/win/* # Added "/*" at the end is glob pattern match for this action
